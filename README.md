@@ -1,4 +1,4 @@
-# Bluesky Labeler (Bun Optimized)
+# Bluesky Labeler
 
 This is a high-performance Bluesky Labeler built with Node.js/Bun, `@skyware/labeler`, and `@skyware/bot`.
 
@@ -15,7 +15,7 @@ It monitors a JSON file (`users.json`) and automatically labels users based on c
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) (Recommended for speed) or Node.js
+- [Bun](https://bun.sh/) or Node.js
 - A Bluesky account to act as the labeler
 - A domain and SSL certificate (for the labeler service)
 
