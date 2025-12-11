@@ -6,6 +6,7 @@ import * as path from "path";
 import dotenv from "dotenv";
 import express from "express";
 import auth from "basic-auth";
+import net from 'net';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ const BSKY_PASSWORD = process.env.BSKY_PASSWORD!;
 const DASHBOARD_PORT = parseInt(process.env.DASHBOARD_PORT || "3000");
 const DASHBOARD_USER = process.env.DASHBOARD_USER || "admin";
 const DASHBOARD_PASS = process.env.DASHBOARD_PASS || "password";
+const PROXY_PORT = parseInt(process.env.PROXY_PORT || "14832");
 
 // Configuration
 const USERS_FILE = "users.json";
@@ -473,6 +475,36 @@ async function main() {
   } else {
     // server.start(port, cb)
     server.start(PORT, startCb);
+  }
+
+  // If the labeler ends up bound to loopback (127.0.0.1), many proxy
+  // containers cannot reach it via the host IP. Start a small TCP proxy
+  // that listens on 0.0.0.0:PROXY_PORT and forwards to 127.0.0.1:PORT.
+  // this sucks
+  // do not ever do this
+  // This avoids extra system packages and works for HTTP/TCP traffic.
+  try {
+    const proxyServer = net.createServer((clientSocket) => {
+      const targetSocket = net.connect(PORT, '127.0.0.1');
+      clientSocket.pipe(targetSocket);
+      targetSocket.pipe(clientSocket);
+
+      clientSocket.on('error', (err) => {
+        // ignore client errors
+        try { targetSocket.end(); } catch (_) {}
+      });
+      targetSocket.on('error', (err) => {
+        // target may be down; close client
+        try { clientSocket.end(); } catch (_) {}
+      });
+    });
+
+    proxyServer.on('error', (e) => console.error('Proxy server error:', e));
+    proxyServer.listen(PROXY_PORT, '0.0.0.0', () => {
+      console.log(`TCP proxy listening on 0.0.0.0:${PROXY_PORT} -> 127.0.0.1:${PORT}`);
+    });
+  } catch (e) {
+    console.error('Failed to start TCP proxy:', e);
   }
 
   // Login Bot and Agent
