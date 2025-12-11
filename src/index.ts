@@ -529,6 +529,33 @@ async function main() {
       }
     });
 
+    httpProxy.on('upgrade', (req, socket, head) => {
+      const targetPort = PORT;
+      console.log(`Proxy Upgrade: ${req.url} -> :${targetPort}`);
+
+      const proxySocket = net.connect(targetPort, '127.0.0.1', () => {
+        proxySocket.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`);
+        for (let i = 0; i < req.rawHeaders.length; i += 2) {
+          proxySocket.write(`${req.rawHeaders[i]}: ${req.rawHeaders[i + 1]}\r\n`);
+        }
+        proxySocket.write('\r\n');
+        proxySocket.write(head);
+        
+        proxySocket.pipe(socket);
+        socket.pipe(proxySocket);
+      });
+
+      proxySocket.on('error', (err) => {
+        console.error('Proxy socket error:', err);
+        socket.end();
+      });
+
+      socket.on('error', (err) => {
+        console.error('Client socket error:', err);
+        proxySocket.end();
+      });
+    });
+
     httpProxy.on('error', (e) => console.error('HTTP proxy error:', e));
     httpProxy.listen(PROXY_PORT, '0.0.0.0', () => {
       console.log(`HTTP proxy listening on 0.0.0.0:${PROXY_PORT} -> dashboard:${DASHBOARD_PORT} / labeler:${PORT}`);
