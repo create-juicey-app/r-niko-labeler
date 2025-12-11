@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Niko Labeler Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Niko Labeler Dashboard</h1>
+      <div class="description">
+        Do not share the password to this dashboard with anyone you do not trust.
+      </div>
+    </header>
+    
+    <div class="card">
+      <h2>System Status</h2>
+      <div id="status-badge" class="status-badge status-idle">
+        <span id="status-text">● Loading...</span>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div id="stat-users" class="stat-value">-</div>
+          <div class="stat-label">Labeled Users</div>
+        </div>
+        <div class="stat-item">
+          <div id="stat-followers" class="stat-value">-</div>
+          <div class="stat-label">Labeled Followers</div>
+          <a href="/followers" class="link-button">View All</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add New User</h2>
+      <div class="description">
+        Add a user to the monitoring list. They will be automatically labeled, and if they are an artist, their followers will be labeled too.
+      </div>
+      <form action="/add-user" method="POST" class="form-group">
+        <select name="category">
+          <option value="artist">Explicit Niko Artist</option>
+          <option value="engager">Engages with Content</option>
+        </select>
+        <input type="text" name="handle" placeholder="@username.bsky.social or DID" required>
+        <button type="submit">Add User</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Explicit Niko Artists</h2>
+      <div class="description">
+        Accounts that create explicit Niko content. <strong>All followers of these accounts are also labeled.</strong>
+      </div>
+      <ul id="artists-list" class="user-list">
+        <!-- Populated by JS -->
+      </ul>
+    </div>
+    
+    <div class="card">
+      <h2>Engagers</h2>
+      <div class="description">
+        Accounts that frequently interact with explicit content.
+      </div>
+      <ul id="engagers-list" class="user-list">
+        <!-- Populated by JS -->
+      </ul>
+    </div>
+  </div>
+  <script src="/js/script.js"></script>
+</body>
+</html>

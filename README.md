@@ -76,9 +76,21 @@ To run with Node:
 npm start
 ```
 
+## Dashboard
+
+A secure web dashboard is available to monitor the labeler status.
+
+-   **URL:** `http://localhost:3000` (default)
+-   **Credentials:** Configured in `.env` (Default: `admin` / `password`)
+
+The dashboard shows:
+-   Current status (Idle/Processing)
+-   Number of processed users and followers in the current session
+-   The current list of Artists and Engagers from `users.json`
+
 ## Features
 
-- **Dynamic Updates:** Edit `users.json` while the script is running, and it will automatically pick up changes.
+-   **Dynamic Updates:** Edit `users.json` while the script is running, and it will automatically pick up changes.
 - **Follower Labeling:** Automatically fetches and labels all followers of the "Artist" category.
 - **Parallel Processing:** Uses concurrent requests to fetch and label data as fast as possible.
 - **Caching:** Remembers processed users to avoid redundant API calls in the same session.
