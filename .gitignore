@@ -7,3 +7,4 @@ users.json
 labels.db
 labels.db-shm
 labels.db-wal
+cache.json

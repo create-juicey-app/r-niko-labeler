@@ -492,12 +492,15 @@ async function main() {
     const httpProxy = http.createServer((req, res) => {
       try {
         const url = req.url || '/';
+        // Handle absolute URLs (if any) by stripping protocol/host
+        const pathOnly = url.replace(/^https?:\/\/[^\/]+/, '');
 
         // Route API/dashboard paths to the dashboard app.
         // Adjust this list if you add more dashboard routes that need exposing.
-        const routeToDashboard = url.startsWith('/api') || url === '/' || url.startsWith('/followers') || url.startsWith('/static') || url.startsWith('/public');
+        const routeToDashboard = pathOnly.startsWith('/api') || pathOnly === '/' || pathOnly.startsWith('/followers') || pathOnly.startsWith('/static') || pathOnly.startsWith('/public');
 
         const targetPort = routeToDashboard ? DASHBOARD_PORT : PORT;
+        console.log(`Proxy: ${req.method} ${url} (path: ${pathOnly}) -> :${targetPort}`);
 
         const options = {
           hostname: '127.0.0.1',
@@ -575,9 +578,6 @@ async function main() {
       }, 1000); // Debounce 1s
     }
   });
-
-  // Start Dashboard
-  startDashboard();
 }
 
 main();
