@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import express from "express";
 import auth from "basic-auth";
 import net from 'net';
+import http from 'http';
 
 dotenv.config();
 
@@ -301,10 +302,12 @@ async function processList() {
 function startDashboard() {
   const app = express();
   app.use(express.urlencoded({ extended: true }));
-  app.use(express.static(path.join(process.cwd(), 'public')));
 
-  // Basic Auth Middleware
+  // Basic Auth Middleware - allow public API access under /api
   app.use((req, res, next) => {
+    // Make API routes public
+    if (req.path.startsWith('/api')) return next();
+
     const user = auth(req);
     if (!user || user.name !== DASHBOARD_USER || user.pass !== DASHBOARD_PASS) {
       res.set("WWW-Authenticate", 'Basic realm="Niko Labeler Dashboard"');
@@ -312,6 +315,9 @@ function startDashboard() {
     }
     next();
   });
+
+  // Serve dashboard static assets after auth so the dashboard remains protected
+  app.use(express.static(path.join(process.cwd(), 'public')));
 
   app.post("/add-user", (req, res) => {
     const { category, handle } = req.body;
@@ -477,34 +483,55 @@ async function main() {
     server.start(PORT, startCb);
   }
 
-  // If the labeler ends up bound to loopback (127.0.0.1), many proxy
-  // containers cannot reach it via the host IP. Start a small TCP proxy
-  // that listens on 0.0.0.0:PROXY_PORT and forwards to 127.0.0.1:PORT.
-  // this sucks
-  // do not ever do this
-  // This avoids extra system packages and works for HTTP/TCP traffic.
+  // Start a lightweight HTTP proxy on PROXY_PORT that routes traffic
+  // to either the dashboard (DASHBOARD_PORT) for API/UI requests or
+  // to the labeler server (PORT) for other requests. This allows an
+  // external reverse proxy to point at PROXY_PORT while exposing the
+  // dashboard API endpoints (like /api/followers).
   try {
-    const proxyServer = net.createServer((clientSocket) => {
-      const targetSocket = net.connect(PORT, '127.0.0.1');
-      clientSocket.pipe(targetSocket);
-      targetSocket.pipe(clientSocket);
+    const httpProxy = http.createServer((req, res) => {
+      try {
+        const url = req.url || '/';
 
-      clientSocket.on('error', (err) => {
-        // ignore client errors
-        try { targetSocket.end(); } catch (_) {}
-      });
-      targetSocket.on('error', (err) => {
-        // target may be down; close client
-        try { clientSocket.end(); } catch (_) {}
-      });
+        // Route API/dashboard paths to the dashboard app.
+        // Adjust this list if you add more dashboard routes that need exposing.
+        const routeToDashboard = url.startsWith('/api') || url === '/' || url.startsWith('/followers') || url.startsWith('/static') || url.startsWith('/public');
+
+        const targetPort = routeToDashboard ? DASHBOARD_PORT : PORT;
+
+        const options = {
+          hostname: '127.0.0.1',
+          port: targetPort,
+          path: url,
+          method: req.method,
+          headers: req.headers,
+        } as http.RequestOptions;
+
+        const proxyReq = http.request(options, (proxyRes) => {
+          res.writeHead(proxyRes.statusCode || 500, proxyRes.headers as http.IncomingHttpHeaders);
+          proxyRes.pipe(res, { end: true });
+        });
+
+        proxyReq.on('error', (err) => {
+          console.error('Proxy request error:', err);
+          res.statusCode = 502;
+          res.end('Bad gateway');
+        });
+
+        req.pipe(proxyReq, { end: true });
+      } catch (err) {
+        console.error('HTTP proxy handler error:', err);
+        res.statusCode = 500;
+        res.end('Internal proxy error');
+      }
     });
 
-    proxyServer.on('error', (e) => console.error('Proxy server error:', e));
-    proxyServer.listen(PROXY_PORT, '0.0.0.0', () => {
-      console.log(`TCP proxy listening on 0.0.0.0:${PROXY_PORT} -> 127.0.0.1:${PORT}`);
+    httpProxy.on('error', (e) => console.error('HTTP proxy error:', e));
+    httpProxy.listen(PROXY_PORT, '0.0.0.0', () => {
+      console.log(`HTTP proxy listening on 0.0.0.0:${PROXY_PORT} -> dashboard:${DASHBOARD_PORT} / labeler:${PORT}`);
     });
   } catch (e) {
-    console.error('Failed to start TCP proxy:', e);
+    console.error('Failed to start HTTP proxy:', e);
   }
 
   // Login Bot and Agent
