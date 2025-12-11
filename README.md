@@ -1,4 +1,4 @@
-# Bluesky Labeler
+# Niko Explicit Artist Bluesky Labeler
 
 This is a high-performance Bluesky Labeler built with Node.js/Bun, `@skyware/labeler`, and `@skyware/bot`.
 
