@@ -1,5 +1,5 @@
 import { LabelerServer } from "@skyware/labeler";
-import { Bot } from "@skyware/bot";
+// import { Bot } from "@skyware/bot";
 import { BskyAgent } from "@atproto/api";
 import * as fs from "fs";
 import * as path from "path";
@@ -31,7 +31,7 @@ const server = new LabelerServer({
 });
 
 // Initialize Bot for API requests (if needed for other things)
-const bot = new Bot();
+// const bot = new Bot();
 
 // Initialize BskyAgent for fetching followers
 const agent = new BskyAgent({ service: "https://bsky.social" });
@@ -198,11 +198,13 @@ async function main() {
 
   // Login Bot and Agent
   try {
+    /*
     await bot.login({
       identifier: BSKY_HANDLE,
       password: BSKY_PASSWORD,
     });
     console.log("Bot logged in.");
+    */
 
     await agent.login({
       identifier: BSKY_HANDLE,
