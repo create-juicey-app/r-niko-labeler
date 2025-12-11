@@ -55,8 +55,8 @@ It monitors a JSON file (`users.json`) and automatically labels users based on c
     ```json
     {
       "artists": [
-        "did:plc:ragtjsm2j2vknwkz3zp4oxrd",
-        "@pfrazee.com"
+        "did:plc:exampleexamplexample",
+        "@example.com"
       ],
       "engagers": [
         "@another-user.bsky.social"
