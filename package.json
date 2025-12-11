@@ -1,0 +1,22 @@
+{
+  "name": "bluesky-labeler-fast",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "setup-labels": "bun run src/setup_labels.ts"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.6.0",
+    "@skyware/bot": "^0.1.0",
+    "@skyware/labeler": "^0.2.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "bun-types": "latest",
+    "typescript": "^5.9.3"
+  }
+}

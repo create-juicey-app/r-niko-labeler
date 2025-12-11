@@ -1,0 +1,9 @@
+.env
+node_modules/
+tsconfig.tsbuildinfo
+package-lock.json
+bun.lock
+users.json
+labels.db
+labels.db-shm
+labels.db-wal
