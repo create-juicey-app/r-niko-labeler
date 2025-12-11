@@ -239,7 +239,30 @@ button:hover {
   font-weight: 500;
 }
 
-.link-button:hover { text-decoration: underline; }
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.secondary-button {
+  background-color: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-primary);
+  padding: 8px 16px;
+  border-radius: 100px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.secondary-button:hover {
+  background-color: rgba(208, 188, 255, 0.08);
+}
+
+.secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar {

@@ -342,12 +342,39 @@ function startDashboard() {
     res.redirect("/");
   });
 
+  app.post("/api/reprocess", async (req, res) => {
+    if (isProcessing) return res.status(409).send("Already processing");
+    
+    // Clear processed flags to force re-labeling
+    processedUsers.clear();
+    processedFollowers.clear();
+    
+    processList().catch(console.error);
+    res.send("Reprocessing started");
+  });
+
   app.get("/api/stats", (req, res) => {
     res.json({
       isProcessing,
       processedUsers: processedUsers.size,
       processedFollowers: processedFollowers.size
     });
+  });
+
+  app.post("/api/reprocess", async (req, res) => {
+    if (isProcessing) return res.status(409).send("Already processing");
+    
+    // Clear processed flags to force re-labeling
+    // Note: We don't clear the cache file, just the memory set, 
+    // so it will re-emit labels for everyone in the list.
+    // We might want to be careful not to spam, but for this use case it's fine.
+    processedUsers.clear();
+    processedFollowers.clear();
+    
+    // We don't clear followerSources or profileCache as those are expensive to fetch
+    
+    processList().catch(console.error);
+    res.send("Reprocessing started");
   });
 
   app.get("/api/users", (req, res) => {

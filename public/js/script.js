@@ -4,6 +4,29 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Refresh stats every 5 seconds
   setInterval(fetchStats, 5000);
+
+  const reprocessBtn = document.getElementById('reprocess-btn');
+  if (reprocessBtn) {
+    reprocessBtn.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to force re-processing? This will re-emit all labels.')) return;
+      try {
+        reprocessBtn.disabled = true;
+        reprocessBtn.textContent = 'Starting...';
+        const res = await fetch('/api/reprocess', { method: 'POST' });
+        if (res.ok) {
+          alert('Reprocessing started.');
+          fetchStats();
+        } else {
+          alert('Failed to start reprocessing: ' + await res.text());
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        reprocessBtn.disabled = false;
+        reprocessBtn.textContent = 'Force Reprocess';
+      }
+    });
+  }
 });
 
 async function fetchStats() {
