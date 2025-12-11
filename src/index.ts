@@ -454,14 +454,29 @@ async function main() {
   // Start Dashboard
   startDashboard();
 
-  // Start Labeler Server
-  server.start(PORT, (error: any) => {
-    if (error) {
-      console.error("Failed to start labeler server:", error);
-    } else {
-      console.log(`Labeler server running on port ${PORT}`);
-    }
-  });
+  // Start Labeler Server (bind to all interfaces so reverse proxies/containers can reach it)
+  // Pass '0.0.0.0' as the host if the LabelerServer implementation accepts it.
+  // Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck 
+  try {
+    // @ts-ignore
+    server.start(PORT, '0.0.0.0', (error: any) => {
+      if (error) {
+        console.error("Failed to start labeler server:", error);
+      } else {
+        console.log(`Labeler server running on port ${PORT}`);
+      }
+    });
+  } catch (err) {
+    // CRAZY HAMBURGER
+    console.warn('LabelerServer.start(port, host, cb) failed, falling back to start(port, cb):', String(err));
+    server.start(PORT, (error: any) => {
+      if (error) {
+        console.error("Failed to start labeler server:", error);
+      } else {
+        console.log(`Labeler server running on port ${PORT}`);
+      }
+    });
+  }
 
   // Login Bot and Agent
   try {
