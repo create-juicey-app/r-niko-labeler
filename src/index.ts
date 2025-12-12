@@ -489,8 +489,14 @@ async function main() {
     }
   };
 
-  // Start server using a standard (port, cb) signature.
-  server.start(PORT, startCb);
+  // If the start function supports a host argument, call the 3-arg signature
+  // to ensure the server binds to 0.0.0.0 (not just localhost) so reverse
+  // proxies on the same host can route traffic to it reliably.
+  if (typeof startFn === 'function' && (startFn.length ?? 0) >= 3) {
+    (server as any).start(PORT, '0.0.0.0', startCb);
+  } else {
+    server.start(PORT, startCb);
+  }
 
   
   const DISABLE_INTERNAL_PROXY = (process.env.DISABLE_INTERNAL_PROXY || '').toLowerCase() === '1' || (process.env.DISABLE_INTERNAL_PROXY || '').toLowerCase() === 'true';
