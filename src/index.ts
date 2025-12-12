@@ -1,5 +1,4 @@
 import { LabelerServer } from "@skyware/labeler";
-// import { Bot } from "@skyware/bot";
 import { BskyAgent } from "@atproto/api";
 import * as fs from "fs";
 import * as path from "path";
@@ -22,7 +21,7 @@ const DASHBOARD_USER = process.env.DASHBOARD_USER || "admin";
 const DASHBOARD_PASS = process.env.DASHBOARD_PASS || "password";
 const PROXY_PORT = parseInt(process.env.PROXY_PORT || "14832");
 
-// Configuration
+ 
 const USERS_FILE = "users.json";
 const LABEL_ARTIST = "explicit-niko-artist";
 const LABEL_ENGAGER = "engages-explicit-niko";
@@ -33,24 +32,23 @@ interface UserList {
   engagers: string[];
 }
 
-// Initialize Labeler Server
+ 
 const server = new LabelerServer({
   did: LABELER_DID,
   signingKey: SIGNING_KEY,
 });
 
-// Initialize Bot for API requests (if needed for other things)
-// const bot = new Bot();
+ 
 
-// Initialize BskyAgent for fetching followers
+ 
 const agent = new BskyAgent({ service: "https://bsky.social" });
 
-// Cache to prevent redundant processing
+ 
 const processedUsers = new Set<string>();
 const processedFollowers = new Set<string>();
 const followerSources = new Map<string, Set<string>>();
 
-// Store profile info for UI
+ 
 interface ProfileInfo {
   did: string;
   handle: string;
@@ -60,9 +58,9 @@ const profileCache = new Map<string, ProfileInfo>();
 
 let isProcessing = false;
 
-// Persistence
+ 
 
-// We add the cache because always feching those fucking followers are making my server explode.
+ 
 const CACHE_FILE = "cache.json";
 
 function loadCache() {
@@ -104,7 +102,6 @@ function saveCache() {
   }
 }
 
-// Save cache periodically (every 30s)
 setInterval(saveCache, 30000);
 
 async function resolveHandle(handleOrDid: string, agent: BskyAgent): Promise<string | null> {
@@ -113,9 +110,9 @@ async function resolveHandle(handleOrDid: string, agent: BskyAgent): Promise<str
     identifier = identifier.substring(1);
   }
   if (identifier.startsWith("did:")) {
-    // If we have it in cache, return it, but we might want to fetch profile if missing
+    
     if (profileCache.has(identifier)) return identifier;
-    // If not in cache, we should try to fetch profile to get handle/avatar
+    
     try {
         const res = await agent.getProfile({ actor: identifier });
         profileCache.set(identifier, {
@@ -125,7 +122,7 @@ async function resolveHandle(handleOrDid: string, agent: BskyAgent): Promise<str
         });
         return identifier;
     } catch (e) {
-        // If fetch fails, just return DID
+        
         return identifier;
     }
   }
@@ -134,7 +131,7 @@ async function resolveHandle(handleOrDid: string, agent: BskyAgent): Promise<str
     const res = await agent.resolveHandle({ handle: identifier });
     const did = res.data.did;
     
-    // Fetch profile to get avatar
+    
     try {
         const profile = await agent.getProfile({ actor: did });
         profileCache.set(did, {
@@ -143,8 +140,7 @@ async function resolveHandle(handleOrDid: string, agent: BskyAgent): Promise<str
             avatar: profile.data.avatar
         });
     } catch (e) {
-        // If profile fetch fails, store what we know
-        // Bad implementation but whatever i don't fucking care
+        
         profileCache.set(did, { did, handle: identifier });
     }
 
@@ -169,8 +165,7 @@ async function fetchFollowers(did: string, agent: BskyAgent) {
       
       res.data.followers.forEach((f: any) => {
         followers.push(f.did);
-        // Cache profile info for followers too,
-        // I KNOW THIS IS MEMORY INTENSIVE BUT I LIKE MY DASHBOARD FANCY OKAY
+        
         profileCache.set(f.did, {
             did: f.did,
             handle: f.handle,
@@ -192,7 +187,7 @@ async function labelUser(did: string, label: string) {
       uri: did,
       val: label,
     });
-    // console.log(`Labeled ${did} as ${label}`);
+    
   } catch (e) {
     console.error(`Failed to label ${did}:`, e);
   }
@@ -206,12 +201,10 @@ async function processList() {
   isProcessing = true;
   console.log("Processing users list...");
   
-  // Use Bun's fast file reading if available, otherwise fs
+  
   let content = "";
   try {
-    // @ts-ignore
-    if (typeof Bun !== "undefined") {
-        // @ts-ignore
+  if (typeof Bun !== "undefined") {
         content = await Bun.file(USERS_FILE).text();
     } else {
         content = fs.readFileSync(USERS_FILE, "utf-8");
@@ -234,7 +227,7 @@ async function processList() {
   const CHUNK_SIZE = 5;
   
   try {
-    // Process Artists
+    
     if (data.artists && Array.isArray(data.artists)) {
         console.log(`Processing ${data.artists.length} artists...`);
         for (let i = 0; i < data.artists.length; i += CHUNK_SIZE) {
@@ -243,14 +236,14 @@ async function processList() {
                 const did = await resolveHandle(userEntry, agent);
                 if (!did) return;
 
-                // Label the artist
+                
                 if (!processedUsers.has(did + LABEL_ARTIST)) {
                     await labelUser(did, LABEL_ARTIST);
                     processedUsers.add(did + LABEL_ARTIST);
                     console.log(`Labeled artist: ${did}`);
                 }
 
-                // Fetch and label followers
+                
                 const followers = await fetchFollowers(did, agent);
                 console.log(`Found ${followers.length} followers for artist ${did}`);
 
@@ -258,7 +251,7 @@ async function processList() {
                 for (let j = 0; j < followers.length; j += followerChunkSize) {
                     const fChunk = followers.slice(j, j + followerChunkSize);
                     await Promise.all(fChunk.map(async (fDid) => {
-                        // Track source
+                        
                         if (!followerSources.has(fDid)) {
                             followerSources.set(fDid, new Set());
                         }
@@ -274,7 +267,7 @@ async function processList() {
         }
     }
 
-    // Process Engagers
+    
     if (data.engagers && Array.isArray(data.engagers)) {
         console.log(`Processing ${data.engagers.length} engagers...`);
         for (let i = 0; i < data.engagers.length; i += CHUNK_SIZE) {
@@ -283,7 +276,7 @@ async function processList() {
                 const did = await resolveHandle(userEntry, agent);
                 if (!did) return;
 
-                // Label the engager
+                
                 if (!processedUsers.has(did + LABEL_ENGAGER)) {
                     await labelUser(did, LABEL_ENGAGER);
                     processedUsers.add(did + LABEL_ENGAGER);
@@ -303,9 +296,9 @@ function startDashboard() {
   const app = express();
   app.use(express.urlencoded({ extended: true }));
 
-  // Basic Auth Middleware - allow public API access under /api
+  
   app.use((req, res, next) => {
-    // Make API routes public
+    
     if (req.path.startsWith('/api')) return next();
 
     const user = auth(req);
@@ -316,7 +309,6 @@ function startDashboard() {
     next();
   });
 
-  // Serve dashboard static assets after auth so the dashboard remains protected
   app.use(express.static(path.join(process.cwd(), 'public')));
 
   app.post("/add-user", (req, res) => {
@@ -345,7 +337,7 @@ function startDashboard() {
   app.post("/api/reprocess", async (req, res) => {
     if (isProcessing) return res.status(409).send("Already processing");
     
-    // Clear processed flags to force re-labeling
+    
     processedUsers.clear();
     processedFollowers.clear();
     
@@ -364,14 +356,12 @@ function startDashboard() {
   app.post("/api/reprocess", async (req, res) => {
     if (isProcessing) return res.status(409).send("Already processing");
     
-    // Clear processed flags to force re-labeling
-    // Note: We don't clear the cache file, just the memory set, 
-    // so it will re-emit labels for everyone in the list.
-    // We might want to be careful not to spam, but for this use case it's fine.
+    
+    
     processedUsers.clear();
     processedFollowers.clear();
     
-    // We don't clear followerSources or profileCache as those are expensive to fetch
+    
     
     processList().catch(console.error);
     res.send("Reprocessing started");
@@ -384,19 +374,19 @@ function startDashboard() {
       usersConfig = JSON.parse(content);
     } catch (e) { }
 
-    // Enrich with profile info
+    
     const enrich = (list: string[]) => list.map(u => {
-        // u might be handle or did
-        // We need to find the DID first if u is handle, but we might not have it easily if not resolved yet.
-        // However, resolveHandle populates the cache.
-        // We can search the cache for a matching handle or DID.
+        
+        
+        
+        
         let info: ProfileInfo | undefined;
         
-        // Try direct DID match
+        
         if (profileCache.has(u)) {
             info = profileCache.get(u);
         } else {
-            // Try finding by handle
+            
             for (const p of profileCache.values()) {
                 if (p.handle === u || p.handle === u.replace("@", "")) {
                     info = p;
@@ -407,7 +397,7 @@ function startDashboard() {
         
         return {
             input: u,
-            did: info?.did || u, // Fallback to input if unknown
+            did: info?.did || u,
             handle: info?.handle || u,
             avatar: info?.avatar
         };
@@ -457,7 +447,7 @@ function startDashboard() {
       });
   });
 
-  // Debug: return labeler service record (if present)
+  
   app.get('/api/labeler-service', async (req, res) => {
     try {
       const records = await agent.com.atproto.repo.listRecords({
@@ -486,12 +476,10 @@ function startDashboard() {
 }
 
 async function main() {
-  // Start Dashboard
+  
   startDashboard();
 
-  // Start Labeler Server. Some implementations accept (port, host, cb),
-  // others accept (port, cb). Detect arity to avoid passing the host
-  // string as the callback (which crashes fastify).
+  
   const startFn = (server as any).start;
   const startCb = (error: any) => {
     if (error) {
@@ -501,29 +489,22 @@ async function main() {
     }
   };
 
-  if (typeof startFn === 'function' && (startFn.length ?? 0) >= 3) {
-    // server.start(port, host, cb)
-    // @ts-ignore
-    server.start(PORT, '0.0.0.0', startCb);
-  } else {
-    // server.start(port, cb)
-    server.start(PORT, startCb);
-  }
+  // Start server using a standard (port, cb) signature.
+  server.start(PORT, startCb);
 
-  // Start a lightweight HTTP proxy on PROXY_PORT that routes traffic
-  // to either the dashboard (DASHBOARD_PORT) for API/UI requests or
-  // to the labeler server (PORT) for other requests. This allows an
-  // external reverse proxy to point at PROXY_PORT while exposing the
-  // dashboard API endpoints (like /api/followers).
+  
+  const DISABLE_INTERNAL_PROXY = (process.env.DISABLE_INTERNAL_PROXY || '').toLowerCase() === '1' || (process.env.DISABLE_INTERNAL_PROXY || '').toLowerCase() === 'true';
+  if (DISABLE_INTERNAL_PROXY) {
+    console.log('DISABLE_INTERNAL_PROXY is set — skipping internal HTTP proxy startup. Use an external reverse proxy to route dashboard and labeler endpoints.');
+  } else {
   try {
     const httpProxy = http.createServer((req, res) => {
       try {
         const url = req.url || '/';
-        // Handle absolute URLs (if any) by stripping protocol/host
+        
         const pathOnly = url.replace(/^https?:\/\/[^\/]+/, '');
 
-        // Route API/dashboard paths to the dashboard app.
-        // Adjust this list if you add more dashboard routes that need exposing.
+        
         const routeToDashboard = pathOnly.startsWith('/api') || pathOnly === '/' || pathOnly.startsWith('/followers') || pathOnly.startsWith('/static') || pathOnly.startsWith('/public');
 
         const targetPort = routeToDashboard ? DASHBOARD_PORT : PORT;
@@ -561,15 +542,78 @@ async function main() {
       console.log(`Proxy Upgrade: ${req.url} -> :${targetPort}`);
 
       const proxySocket = net.connect(targetPort, '127.0.0.1', () => {
-        proxySocket.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`);
-        for (let i = 0; i < req.rawHeaders.length; i += 2) {
-          proxySocket.write(`${req.rawHeaders[i]}: ${req.rawHeaders[i + 1]}\r\n`);
+        
+        proxySocket.write(`${req.method} ${req.url} HTTP/1.1\r\n`);
+        
+        const allowedHeaders = new Set([
+          'host',
+          'sec-websocket-key', 'sec-websocket-version', 'sec-websocket-extensions', 'sec-websocket-protocol',
+          'origin', 'x-forwarded-for', 'x-real-ip', 'x-forwarded-host'
+        ]);
+
+        for (const [name, value] of Object.entries(req.headers)) {
+          const lname = name.toLowerCase();
+          if (!allowedHeaders.has(lname)) continue;
+          
+          if (Array.isArray(value)) {
+            value.forEach(v => proxySocket.write(`${name}: ${v}\r\n`));
+          } else if (value !== undefined) {
+            proxySocket.write(`${name}: ${value}\r\n`);
+          }
         }
+  
+  proxySocket.write(`Host: 127.0.0.1:${targetPort}\r\n`);
+  proxySocket.write('Upgrade: websocket\r\n');
+  proxySocket.write('Connection: Upgrade\r\n');
+  
+  console.log('Proxying WS handshake ->', req.method, req.url, 'Host:', `127.0.0.1:${targetPort}`);
         proxySocket.write('\r\n');
         proxySocket.write(head);
         
-        proxySocket.pipe(socket);
-        socket.pipe(proxySocket);
+        proxySocket.on('data', (chunk) => {
+          
+          console.log(`proxySocket data (${chunk.length} bytes):`, chunk.slice(0, 16));
+        });
+        proxySocket.on('error', (err) => {
+          console.error('Proxy socket to backend error:', err);
+        });
+        proxySocket.on('close', (hadError) => {
+          console.log('Proxy socket to backend closed, hadError=', hadError);
+        });
+        
+  proxySocket.setNoDelay(true);
+  const clientSocket = socket as net.Socket;
+  clientSocket.setNoDelay(true);
+  try { socket.resume(); } catch (e) { }
+
+        
+        socket.pipe(proxySocket, { end: false });
+        let handshakeWritten = false;
+        proxySocket.once('data', (chunk) => {
+          handshakeWritten = true;
+          console.log('Forwarding initial backend handshake chunk to client', chunk.slice(0, 64));
+          clientSocket.write(chunk);
+          
+          proxySocket.pipe(clientSocket, { end: false });
+        });
+        
+        setTimeout(() => {
+          if (!handshakeWritten) {
+            console.log('No initial handshake received; starting pipe anyway');
+            proxySocket.pipe(clientSocket, { end: false });
+          }
+        }, 2000);
+
+        
+        clientSocket.on('data', (chunk) => {
+          console.log(`clientSocket data (${chunk.length} bytes)`);
+        });
+        clientSocket.on('error', (err) => {
+          console.error('Client socket error (upgrade):', err);
+        });
+        clientSocket.on('close', (hadError: boolean) => {
+          console.log('Client socket closed (upgrade), hadError=', hadError);
+        });
       });
 
       proxySocket.on('error', (err) => {
@@ -587,27 +631,20 @@ async function main() {
     httpProxy.listen(PROXY_PORT, '0.0.0.0', () => {
       console.log(`HTTP proxy listening on 0.0.0.0:${PROXY_PORT} -> dashboard:${DASHBOARD_PORT} / labeler:${PORT}`);
     });
-  } catch (e) {
-    console.error('Failed to start HTTP proxy:', e);
+    } catch (e) {
+      console.error('Failed to start HTTP proxy:', e);
+    }
   }
 
-  // Login Bot and Agent
+  
   try {
-    /*
-    await bot.login({
-      identifier: BSKY_HANDLE,
-      password: BSKY_PASSWORD,
-    });
-    console.log("Bot logged in.");
-    */
-
     await agent.login({
       identifier: BSKY_HANDLE,
       password: BSKY_PASSWORD,
     });
     console.log("Agent logged in.");
     
-    // Load cache after login (or before, doesn't matter much, but good to have context)
+    
     loadCache();
 
   } catch (e) {
@@ -615,10 +652,10 @@ async function main() {
     process.exit(1);
   }
 
-  // Initial process
+  
   await processList();
 
-  // Watch for file changes
+  
   console.log(`Watching ${USERS_FILE} for changes...`);
   
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -629,7 +666,7 @@ async function main() {
       debounceTimer = setTimeout(() => {
         console.log("File changed, reprocessing...");
         processList();
-      }, 1000); // Debounce 1s
+  }, 1000);
     }
   });
 }
